@@ -4,7 +4,7 @@ from typing import List, Dict, Any, Tuple
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import networkx as nx
-
+import pandas as pd
 
 class Track:
 	def __init__(self, name: str, id: str, album: str, album_type: str, attr: Dict[str, Any]={}):
@@ -13,14 +13,10 @@ class Track:
 		self.album = album
 		self.album_type = album_type
 		self.attr = attr
+		self.node_type = 'track'
 
 	def add_attrs(self, attrs: Dict[str, Any]):
 		self.attr.update(attrs)
-
-	def show(self):
-		temp = {'id': self.id, 'name': self.name, 'album': self.album, 'album_type': self.album_type}
-		temp.update(self.attr)
-		return json.dumps(temp, indent=3)
 
 
 class Artist:
@@ -28,11 +24,7 @@ class Artist:
 		self.id = id
 		self.name = name
 		self.attr = attr
-
-	def show(self):
-		temp = {'id': self.id, 'name': self.name}
-		temp.update(self.attr)
-		return json.dumps(temp, indent=3)
+		self.node_type = 'artist'
 
 	def __eq__(self, other):
 		return self.id == other.id and self.name == other.name and self.attr == other.attr
@@ -116,7 +108,7 @@ class Network:
 			for artist in artists:
 				if artist.id not in self.graph.nodes():
 					self.graph.add_node(artist.id, artist=artist)
-					self.graph.add_edge(track.id, artist.id)
+				self.graph.add_edge(track.id, artist.id)
 
 	def related_artists(self, artist: Artist) -> List[Artist]:
 		results = self.client.artist_related_artists(artist.id)
@@ -172,3 +164,29 @@ class Network:
 			name=playlist_name,
 			entries=list(entries.values())
 		)			
+
+	def to_dataframe(self) -> (pd.DataFrame, pd.DataFrame):
+		tracks = [track.__dict__ for track in nx.get_node_attributes(self.graph, 'track').values()]
+		artists = [artist.__dict__ for artist in nx.get_node_attributes(self.graph, 'artist').values()]
+		V = pd.json_normalize(tracks + artists)
+		E = nx.to_pandas_edgelist(self.graph)
+		return V, E
+
+	def from_dataframe(self, V: pd.DataFrame, E: pd.DataFrame):
+		G = nx.from_pandas_edgelist(E)
+		records = V.to_dict('records')
+		for record in records:
+			if record['node_type'] == 'track':
+				attr = {}
+				for k, v in record.items():
+					if 'attr' in k:
+						attr[k.replace("attr.", "")] = v
+
+				G.add_node(record['id'], track=Track(id=record['id'], name=record['name'], album=record['album'], album_type=record['album_type'], attr=attr))
+			elif record['node_type'] == 'artist':
+				G.add_node(record['id'], artist=Artist(id=record['id'], name=record['name']))
+			else:
+				print("Weird node found; skipping")
+				continue
+
+		self.graph = G

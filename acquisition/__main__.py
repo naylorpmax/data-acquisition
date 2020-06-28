@@ -1,34 +1,45 @@
-import json, os
-from typing import List
+import json, os, datetime
+from typing import List, Tuple
 
-import spotifynetwork as spotifynx
+from .spotifynetwork import Track, Network, Artist
 
 import networkx as nx
+import pandas as pd
 
+
+# def main():
+# 	with open("testing.json") as f:
+# 		network = nx.readwrite.json_graph.adjacency_graph(f.read())
+	# print(network)
+
+def read_lines(path: str) -> List[Tuple[str, str]]:
+	with open(path) as f:
+		lines = f.readlines()
+	return [(line.split("|")[0].strip(), line.split("|")[1].strip()) for line in lines]
 
 def main():
-	network = spotifynx.Network(
+	playlist_names = read_lines(os.environ["PLAYLIST_PATH"])
+
+	network = Network(
 		audio_features=["danceability", "energy", "key", "loudness", "mode", "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo", "duration_ms", "time_signature"],
-		max_tracks=150
+		max_tracks=50
 	)
 
-	playlist_names = []
-	with open(os.environ["PLAYLIST_PATH"]) as f:
-		playlist_names = f.readlines()
-
-	output_path = os.environ["OUTPUT_PATH"]
-
-	for name in playlist_names:
-		playlist = network.get_playlist(playlist_id=name.strip())
+	for name, playlist_id in playlist_names:
+		start_time = datetime.datetime.now()
+		playlist = network.get_playlist(playlist_id=playlist_id)
 		print(f"Exploring via playlist: {playlist.name} ({playlist.id})")
-		add_artists(network, playlist.get_artists(), 0, 3, 50)
+		add_artists(network, playlist.get_artists(), 0, 2, 15)
 
-	print("Writing graph to file")
-	nx.readwrite.gpickle.write_gpickle(network.graph, output_path)
-	print(f"Collected {len(network.graph.nodes())} nodes and {len(network.graph.edges())} edges")
+		V, E = network.to_dataframe()
+
+		print(f"Writing {len(network.graph.nodes())} nodes and {len(network.graph.edges())} edges to file")
+		V.to_csv(f"vertices_{playlist.name}.csv", index=False)
+		E.to_csv(f"edges_{playlist.name}.csv", index=False)
+		print(f"Completed: {datetime.datetime.now() - start_time}")
 
 
-def add_artists(network: spotifynx.Network, seed_artists: List[spotifynx.Artist], curr_depth: int, max_depth: int, max_breadth: int):
+def add_artists(network: Network, seed_artists: List[Artist], curr_depth: int, max_depth: int, max_breadth: int):
 	if curr_depth == max_depth or len(seed_artists) <= 0:
 		return
 
