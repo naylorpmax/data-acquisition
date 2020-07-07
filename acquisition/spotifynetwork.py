@@ -1,8 +1,6 @@
-import json
+import json, os
 from typing import List, Dict, Any, Tuple
-
 import spotipy
-from spotipy.oauth2 import SpotifyClientCredentials
 import networkx as nx
 import pandas as pd
 
@@ -22,7 +20,7 @@ class Track:
 		return self.id == other.id and self.name == other.name and self.album == other.album and self.album_type == other.album_type
 
 	def __hash__(self):
-	    return hash(('id', self.id, 'name', self.name))
+		return hash(('id', self.id, 'name', self.name))
 
 
 class Artist:
@@ -36,7 +34,7 @@ class Artist:
 		return self.id == other.id and self.name == other.name
 
 	def __hash__(self):
-	    return hash(('id', self.id, 'name', self.name))
+		return hash(('id', self.id, 'name', self.name))
 
 
 class Playlist:
@@ -51,9 +49,10 @@ class Playlist:
 			temp += artists
 		return list(set(temp))
 
+
 class Network:
 	def __init__(self, audio_features: List[str], max_tracks: int):
-		self.client = spotipy.Spotify(auth_manager=SpotifyClientCredentials())
+		self.spotify = spotipy.Spotify(auth_manager=spotipy.oauth2.SpotifyClientCredentials())
 		self.graph = nx.Graph()
 		self.audio_features = audio_features
 		self.max_tracks = max_tracks
@@ -63,7 +62,7 @@ class Network:
 		limit = 50; offset = 0; total = 1
 		while(offset <= total and offset <= self.max_tracks):
 			try:
-				results = self.client.search(artist_name, type='track', limit=limit, offset=offset)
+				results = self.spotify.search(artist_name, type='track', limit=limit, offset=offset)
 			except Exception as e:
 				print(f"exception while searching, skipping batch of tracks:\n{e}")
 				offset += limit
@@ -83,7 +82,7 @@ class Network:
 
 	def top_tracks(self, artist: Artist, seen: bool=False) -> List[Tuple[Track, List[Artist]]]:
 		try:
-			results = self.client.artist_top_tracks(artist.id)
+			results = self.spotify.artist_top_tracks(artist.id)
 		except Exception as e:
 			print(f"exception while getting top tracks, skipping artist ({artist.name}):\n{e}")
 			return []
@@ -110,7 +109,7 @@ class Network:
 
 	def related_artists(self, artist: Artist, seen: bool=False) -> List[Artist]:
 		try:
-			results = self.client.artist_related_artists(artist.id)
+			results = self.spotify.artist_related_artists(artist.id)
 		except Exception as e:
 			print(f"exception while getting related artists, skipping artist ({artist.name}):\n{e}")
 			return []
@@ -130,7 +129,7 @@ class Network:
 				tracks_map[track.id] = track
 
 			try:
-				results = self.client.audio_features(tracks_map.keys())
+				results = self.spotify.audio_features(tracks_map.keys())
 			except Exception as e:
 				print(f"exception while getting audio features, skipping batch of tracks:\n{e}")
 				continue
@@ -149,7 +148,7 @@ class Network:
 
 	def get_playlist(self, playlist_id: str) -> Playlist:
 		try:
-			playlist = self.client.playlist(playlist_id=playlist_id)
+			playlist = self.spotify.playlist(playlist_id=playlist_id)
 		except Exception as e:
 			print(f"exception while getting playlist, skipping playlist ({playlist_id}):\n{e}")
 			return Playlist(id='', name='', entries=[])
@@ -160,7 +159,7 @@ class Network:
 		entries = {}; offset = 0; limit = 50
 		while(offset <= total_tracks):
 			try:
-				results = self.client.playlist_tracks(playlist_id=playlist_id, offset=offset, limit=limit)
+				results = self.spotify.playlist_tracks(playlist_id=playlist_id, offset=offset, limit=limit)
 			except Exception as e:
 				print(f"exception while getting playlist tracks, skipping batch of tracks ({playlist_id}):\n{e}")
 				offset += limit
@@ -196,15 +195,15 @@ class Network:
 		G = nx.from_pandas_edgelist(E)
 		records = V.to_dict('records')
 		for record in records:
-			if record['node_type'] == 'track':
-				attr = {}
-				for k, v in record.items():
-					if 'attr' in k:
-						attr[k.replace("attr.", "")] = v
+			attr = {}
+			for k, v in record.items():
+				if 'attr' in k:
+					attr[k.replace("attr.", "")] = v
 
+			if record['node_type'] == 'track':
 				G.add_node(record['id'], track=Track(id=record['id'], name=record['name'], album=record['album'], album_type=record['album_type'], attr=attr))
 			elif record['node_type'] == 'artist':
-				G.add_node(record['id'], artist=Artist(id=record['id'], name=record['name']))
+				G.add_node(record['id'], artist=Artist(id=record['id'], name=record['name'], attr=attr))
 			else:
 				print("weird node found; skipping")
 				continue

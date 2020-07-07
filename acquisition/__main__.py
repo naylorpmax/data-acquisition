@@ -1,4 +1,4 @@
-import json, os, datetime
+import json, os, time
 from typing import List, Tuple
 
 from .spotifynetwork import Track, Network, Artist
@@ -7,21 +7,27 @@ import networkx as nx
 import pandas as pd
 
 
-def read_lines(path: str) -> List[Tuple[str, str]]:
-	with open(path) as f:
-		lines = f.readlines()
-	return [(line.split("|")[0].strip(), line.split("|")[1].strip()) for line in lines]
-
-
 def main():
 	network = Network(
 		audio_features=["danceability", "energy", "key", "loudness", "mode", "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo", "duration_ms", "time_signature"],
 		max_tracks=50
 	)
 
-	playlist_names = read_lines(os.environ["PLAYLIST_PATH"])
+	vertices_path = os.environ.get("VERTICES_PATH")
+	edges_path = os.environ.get("EDGES_PATH")
+	playlists_path = os.environ.get("PLAYLISTS_PATH")
+
+	if vertices_path and edges_path:
+		print("Loading graph from file")
+		V = pd.read_csv(vertices_path)
+		E = pd.read_csv(edges_path)
+		network.from_dataframe(V, E)
+		print(f"Loaded {len(network.graph.nodes)} nodes and {len(network.graph.edges)}")
+
+	print("Adding new tracks and artists via seed playlists")
+	playlist_names = read_lines(playlists_path)
 	for name, playlist_id in playlist_names:
-		start_time = datetime.datetime.now()
+		start_time = time.time()
 		playlist = network.get_playlist(playlist_id=playlist_id)
 		print(f"Exploring via playlist: {playlist.name} ({playlist.id})")
 		add_artists(network, playlist.get_artists(), 0, 2)
@@ -31,7 +37,7 @@ def main():
 		print(f"Writing {len(network.graph.nodes())} nodes and {len(network.graph.edges())} edges to file")
 		V.to_csv(f"vertices_{name}.csv", index=False)
 		E.to_csv(f"edges_{name}.csv", index=False)
-		print(f"Completed: {datetime.datetime.now() - start_time}")
+		print(f"Completed: {time.time() - start_time}")
 
 
 def add_artists(network: Network, seed_artists: List[Artist], curr_depth: int, max_depth: int):
@@ -59,6 +65,12 @@ def add_artists(network: Network, seed_artists: List[Artist], curr_depth: int, m
 		print(f"Tracks: {len(found_tracks + top_tracks)}\tAssociated artists: {len(unseen_associated_artists)}\tArtist: {seed_artist.name}")
 
 	add_artists(network, next_seed_artists, curr_depth+1, max_depth)
+
+
+def read_lines(path: str) -> List[Tuple[str, str]]:
+	with open(path) as f:
+		lines = f.readlines()
+	return [(line.split("|")[0].strip(), line.split("|")[1].strip()) for line in lines]
 
 
 if __name__ == '__main__':
