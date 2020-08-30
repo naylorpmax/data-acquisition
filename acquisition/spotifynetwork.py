@@ -51,7 +51,7 @@ class Playlist:
 
 
 class Network:
-	def __init__(self, audio_features: List[str], max_tracks: int):
+	def __init__(self, audio_features: List[str]=[], max_tracks: int=50):
 		self.spotify = spotipy.Spotify(auth_manager=spotipy.oauth2.SpotifyClientCredentials())
 		self.graph = nx.Graph()
 		self.audio_features = audio_features
@@ -184,10 +184,10 @@ class Network:
 		)			
 
 	def to_dataframe(self) -> (pd.DataFrame, pd.DataFrame):
-		artists = nx.get_node_attributes(self.graph, 'artist')
 		tracks = [track.__dict__ for track in nx.get_node_attributes(self.graph, 'track').values()]
 		artists = [artist.__dict__ for artist in nx.get_node_attributes(self.graph, 'artist').values()]
-		V = pd.json_normalize(tracks + artists)
+		tags = [tag.__dict__ for tag in nx.get_node_attributes(self.graph, 'tag').values()]
+		V = pd.json_normalize(tracks + artists + tags)
 		E = nx.to_pandas_edgelist(self.graph)
 		return V, E
 

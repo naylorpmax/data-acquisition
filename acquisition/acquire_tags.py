@@ -85,7 +85,7 @@ async def tag_artists(lastfm: LastFMClient, artists: pd.DataFrame) -> str:
 
 	async with aiohttp.ClientSession() as session:
 		for index, row in artists.iterrows():
-			if pd.notna(row['tags']):
+			if pd.notna(row['attr.tags']):
 				print(f"artist already tagged:\t{row['name']}")
 				continue
 			if 'name' not in row or not row['name']:
@@ -110,9 +110,9 @@ async def tag_artists(lastfm: LastFMClient, artists: pd.DataFrame) -> str:
 			if not task.cancelled():
 				artist_index, tags = task.result()
 				if tags and artist_index:
-					artists.loc[artist_index, 'tags'] = json.dumps(tags)
+					artists.loc[artist_index, 'attr.tags'] = json.dumps(tags)
 				else:
-					artists.loc[artist_index, 'tags'] = json.dumps({'none': 0})
+					artists.loc[artist_index, 'attr.tags'] = json.dumps({'none': 0})
 		except (RateLimited, InvalidStateError) as e:
 			continue
 		except Exception as e:
