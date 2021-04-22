@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+
+  pull-spotify:
+    image: banzo-acquisition:0.0.1    # TODO: figure out why $IMAGE_VERSION is not being passed in docker-compose run
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: "python -m acquisition"
+    environment:
+      - SPOTIPY_CLIENT_ID=${SPOTIPY_CLIENT_ID}
+      - SPOTIPY_CLIENT_SECRET=${SPOTIPY_CLIENT_SECRET}
+      - PLAYLISTS_PATH=acquisition/playlists.txt
+      - VERTICES_PATH=${VERTICES_PATH}
+      - EDGES_PATH=${EDGES_PATH}
+
+  pull-lastfm:
+    image: banzo-acquisition:0.0.1
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: "python acquisition/tag.py"
+    environment:
+      - VERTICES_PATH=${VERTICES_PATH}
+      - LASTFM_CLIENT_ID=${LASTFM_CLIENT_ID}
+      - LASTFM_CLIENT_SECRET=${LASTFM_CLIENT_SECRET}
