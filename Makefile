@@ -16,3 +16,15 @@ pull-spotify:	## recursively pull spotify data via seed playlists
 		-e SPOTIPY_CLIENT_SECRET=${SPOTIPY_CLIENT_SECRET} \
 		pull-spotify 
 # 		-e IMAGE_VERSION=0.0.1 \
+
+.PHONY: pull-lastfm
+pull-lastfm:	## pull last fm data via spotify data
+	docker-compose run \
+		-e LASTFM_CLIENT_ID=${LASTFM_CLIENT_ID} \
+		-e LASTFM_CLIENT_SECRET=${LASTFM_CLIENT_SECRET} \
+		-e VERTICES_PATH="${VERTICES_PATH}" \
+		pull-lastfm
+
+.PHONY: test
+test:   ## run tests
+	docker-compose run test

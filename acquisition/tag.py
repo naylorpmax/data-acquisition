@@ -69,7 +69,7 @@ class LastFMClient:
 						else:
 							raise HTTPError(message)
 				except Exception as e:
-					if not "could not be found" in str(e):
+					if "could not be found" not in str(e):
 						raise e
 		return artist_index, []
 
@@ -82,6 +82,9 @@ async def tag_artists(lastfm: LastFMClient, artists: pd.DataFrame) -> str:
 	print(f"Adding tags for {len(artists)} artists")
 	tasks = []
 	rate_limited = False
+
+	if "tags" not in artists.columns:
+		artists["tags"] = pd.Series([None])
 
 	async with aiohttp.ClientSession() as session:
 		for index, row in artists.iterrows():
@@ -97,7 +100,7 @@ async def tag_artists(lastfm: LastFMClient, artists: pd.DataFrame) -> str:
 
 		try:
 			await asyncio.gather(*tasks, return_exceptions=False)
-		except RateLimited as e:
+		except RateLimited as _:
 			rate_limited = True
 			for t in tasks:
 				if not task.done():
@@ -113,7 +116,7 @@ async def tag_artists(lastfm: LastFMClient, artists: pd.DataFrame) -> str:
 					artists.loc[artist_index, 'tags'] = json.dumps(tags)
 				else:
 					artists.loc[artist_index, 'tags'] = json.dumps({'none': 0})
-		except (RateLimited, InvalidStateError) as e:
+		except (RateLimited, InvalidStateError) as _:
 			continue
 		except Exception as e:
 			print(f"exception while tagging artist:\n{e}")

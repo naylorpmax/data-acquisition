@@ -25,3 +25,10 @@ services:
       - VERTICES_PATH=${VERTICES_PATH}
       - LASTFM_CLIENT_ID=${LASTFM_CLIENT_ID}
       - LASTFM_CLIENT_SECRET=${LASTFM_CLIENT_SECRET}
+
+  test:
+    image: banzo-acquisition:0.0.1
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: "python -m pytest -vv"
