@@ -89,7 +89,7 @@ def add_artist(network: Network, seed_artist: Artist):
 def read_lines(path: str) -> List[Tuple[str, str]]:
     with open(path) as f:
         lines = f.readlines()
-    return [(line.split("|")[0].strip(), line.split("|")[1].strip()) for line in lines]
+    return [(line.split("|")[0].strip(), line.split("|")[1].strip()) for line in lines if line[0:2] != "# "]
 
 
 if __name__ == '__main__':
