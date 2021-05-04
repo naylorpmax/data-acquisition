@@ -13,8 +13,18 @@ class Track:
 		self.album_type = album_type
 		self.node_type = 'track'
 
-	def set_attrs(self, attrs: Dict[str, Any]):
+	@classmethod
+	def from_response(cls, response: Dict[str, Any]):
+		return cls(
+			track_id=response['id'],
+			name=response['name'],
+			album=response['album']['name'],
+			album_type=response['album']['album_type']
+		)
+
+	def with_attrs(self, attrs: Dict[str, Any]):
 		self.attr = attrs
+		return self
 
 	def __eq__(self, other):
 		return self.id == other.id \

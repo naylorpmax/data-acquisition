@@ -41,6 +41,6 @@ class TestTrack:
     def test_set_attr(self):
         attr = {"fire": True}
         a = Track(track_id="123", name="Trust Nobody", album="Cheap Queen", album_type="album")
-        a.set_attrs(attr)
+        a.with_attrs(attr)
 
         assert a.attr == attr

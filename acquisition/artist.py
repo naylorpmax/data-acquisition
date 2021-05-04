@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 
 class Artist:
@@ -16,3 +16,18 @@ class Artist:
 
 	def __hash__(self):
 		return hash(('id', self.id, 'name', self.name))
+
+	@classmethod
+	def from_response(cls, response: Dict[str, Any], keys: List[str], seen: bool = False):
+		attr = {}
+		for k in keys:
+			attr[k] = response.get(k)
+
+		if seen:
+			attr['seen'] = seen
+
+		return cls(artist_id=response['id'], name=response['name'], attr=attr)
+
+	def with_attrs(self, attrs: Dict[str, Any]):
+		self.attr = attrs
+		return self
