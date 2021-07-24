@@ -1,4 +1,4 @@
-from acquisition.artist import Artist
+from graph.artist import Artist
 
 
 class TestArtist:

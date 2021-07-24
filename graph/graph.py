@@ -3,8 +3,8 @@ from typing import Dict, Any, List
 import networkx as nx
 import pandas as pd
 
-from acquisition.artist import Artist
-from acquisition.track import Track
+from graph.artist import Artist
+from graph.track import Track
 
 
 class Graph:

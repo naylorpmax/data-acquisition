@@ -6,10 +6,10 @@ from spotipy import Spotify
 import networkx as nx
 import pandas as pd
 
-from .artist import Artist
-from .graph import Graph
-from .playlist import Playlist
-from .track import Track
+from graph.artist import Artist
+from graph.graph import Graph
+from graph.playlist import Playlist
+from graph.track import Track
 
 
 class Network:
@@ -38,19 +38,9 @@ class Network:
 					attr[k.replace("attr.", "")] = v
 
 			if record['node_type'] == 'track':
-				graph.add_track(Track(
-					track_id=record['id'],
-					name=record['name'],
-					album=record['album'],
-					album_type=record['album_type'],
-					attr=attr
-				))
+				graph.add_track(Track.from_response(record).with_attrs(attr))
 			elif record['node_type'] == 'artist':
-				graph.add_artist(Artist(
-					artist_id=record['id'],
-					name=record['name'],
-					attr=attr
-				))
+				graph.add_artist(Artist.from_response(record, []).with_attrs(attr))
 			else:
 				print("weird node found; skipping")
 				continue
@@ -81,11 +71,10 @@ class Network:
 				continue
 
 			for result in results['tracks']['items']:
-				if artist_name in [artist['name'] for artist in result['artists']]:
-					tracks[result['name']] = (
-						self.track_from_response(result),
-						[self.artist_from_response(artist, seen) for artist in result['artists']]
-					)
+				track_name = result['name']
+				track_artists = [artist['name'] for artist in result['artists']]
+				if artist_name in track_artists:
+					tracks[track_name] = Network.parse_response(result, seen)
 
 		return list(tracks.values())
 
@@ -101,10 +90,7 @@ class Network:
 
 		tracks = {}
 		for result in results['tracks']:
-			tracks[result['name']] = (
-				self.track_from_response(result),
-				[self.artist_from_response(artist, seen) for artist in result['artists']]
-			)
+			tracks[result['name']] = Network.parse_response(result, seen)
 
 		return list(tracks.values())
 
@@ -120,7 +106,7 @@ class Network:
 
 		if not results['artists']:
 			return []
-		return [self.artist_from_response(artist, seen) for artist in results['artists']]
+		return [Artist.from_response(artist, ['popularity', 'genres'], seen) for artist in results['artists']]
 
 	def put_audio_features(self, tracks: List[Track]):
 		n = 100
@@ -154,7 +140,7 @@ class Network:
 				audio_features = {}
 				for name in self.audio_features:
 					audio_features[name] = result.get(name)
-				tracks_map[track_id].set_attrs(audio_features)
+				tracks_map[track_id].with_attrs(audio_features)
 
 	# TODO: test this
 	def get_playlist(self, playlist_id: str) -> Union[Playlist, None]:
@@ -186,7 +172,7 @@ class Network:
 				if not result['track']:
 					continue
 				track = result['track']
-				entries[track['name']] = self.track_with_artists_from_response(result['track'])
+				entries[track['name']] = Network.parse_response(result['track'])
 
 		return Playlist(
 			playlist_id=playlist_id,
@@ -205,26 +191,11 @@ class Network:
 			)
 			return {}
 
-	def track_with_artists_from_response(self, response: Dict[str, Any]):
-		return (
-			self.track_from_response(response),
-			[self.artist_from_response(artist) for artist in response['artists']]
-		)
-
-	def artist_from_response(self, response: Dict[str, Any], seen: bool = False) -> Artist:
-		attr = {'popularity': response.get('popularity'), 'genres': response.get('genres')}
-		if seen or response['id'] in self.graph.get_node_attributes('seen'):
-			attr['seen'] = True
-
-		return Artist(artist_id=response['id'], name=response['name'], attr=attr)
-
 	@staticmethod
-	def track_from_response(response: Dict[str, Any]) -> Track:
-		return Track(
-			track_id=response['id'],
-			name=response['name'],
-			album=response['album']['name'],
-			album_type=response['album']['album_type']
+	def parse_response(response: Dict[str, Any], seen: bool = False):
+		return (
+			Track.from_response(response),
+			[Artist.from_response(artist, ['popularity', 'genres'], seen) for artist in response['artists']]
 		)
 
 

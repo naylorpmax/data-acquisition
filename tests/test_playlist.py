@@ -1,6 +1,6 @@
-from acquisition.playlist import Playlist
-from acquisition.track import Track
-from acquisition.artist import Artist
+from graph.playlist import Playlist
+from graph.track import Track
+from graph.artist import Artist
 
 
 playlist = Playlist(playlist_id="123", name="sleep with a baseball bat", entries=[

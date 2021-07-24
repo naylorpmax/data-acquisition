@@ -1,9 +1,9 @@
 import copy
 from unittest.mock import Mock
 
-from acquisition.track import Track
-from acquisition.artist import Artist
-from acquisition.network import Network
+from graph.track import Track
+from graph.artist import Artist
+from graph.network import Network
 
 tracks_response = {
     "tracks": [
@@ -165,8 +165,8 @@ class TestNetworkTopTracks:
         tracks_only = [track[0] for track in tracks]
 
         tracks_with_audio_features = copy.deepcopy(tracks_only)
-        tracks_with_audio_features[0].set_attrs({"poetic": 1.0, "excellence": 1.0})
-        tracks_with_audio_features[1].set_attrs({"bop": 1.0})
+        tracks_with_audio_features[0].with_attrs({"poetic": 1.0, "excellence": 1.0})
+        tracks_with_audio_features[1].with_attrs({"bop": 1.0})
 
         network = Network(audio_features=["poetic", "excellence", "bop"], max_tracks=10, spotify=Mock())
         network.spotify.audio_features.return_value = tracks_with_audio_features_response

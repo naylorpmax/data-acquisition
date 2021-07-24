@@ -1,7 +1,7 @@
 from typing import List, Tuple
 
-from .artist import Artist
-from .track import Track
+from graph.artist import Artist
+from graph.track import Track
 
 
 class Playlist:

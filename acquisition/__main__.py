@@ -6,8 +6,8 @@ import pandas as pd
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyClientCredentials
 
-from .network import Network
-from .artist import Artist
+from graph.network import Network
+from graph.artist import Artist
 
 
 def main():

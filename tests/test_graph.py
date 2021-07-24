@@ -2,9 +2,9 @@ import random
 
 from pandas import DataFrame
 
-from acquisition.graph import Graph
-from acquisition.track import Track
-from acquisition.artist import Artist
+from graph.graph import Graph
+from graph.track import Track
+from graph.artist import Artist
 
 tracks = [
     (
